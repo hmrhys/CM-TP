@@ -1,0 +1,125 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Staff Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/bootstrap-grid.css" />
+<link rel="stylesheet" href="css/app.css" />
+
+<!-- <link rel="stylesheet" href="../static/css/bootstrap.css" />
+<link rel="stylesheet" href="../static/css/bootstrap-grid.css" />
+<link rel="stylesheet" href="../static/css/app.css" /> -->
+</head>
+<body>
+	<script
+		src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('staffLoginCtrl', function($scope, $http, $q) {
+			console.log("Hit!");
+
+			$scope.reset = function() {
+				// update for user info (might not store anything here idk)
+				$scope.user = {
+					username : '',
+					password: ''
+				};
+
+				if (undefined != $scope.staffLoginForm) {
+					$scope.staffLoginForm.$setPristine();
+				}
+			}
+
+			$scope.submit = function() {
+				// update submit
+				console.log("submit!")
+			}
+
+			$scope.reset();
+		});
+		app.controller('LoginController', ['$scope', '$location', function($scope, $location) {
+			$scope.lgn
+
+	        // Check if the 'error' parameter exists in the URL
+	        $scope.loginFailed = $location.absUrl().includes("?error");
+	    }]);
+		/*]]>*/
+	</script>
+
+	<div ng-app="myApp" class="generic-container ng-cloak"
+		ng-controller="staffLoginCtrl as ctrl">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="lead">Staff Login</span>
+			</div>
+
+ 			<div class="formcontainer">
+<!-- 				<form ng-submit="submit()" name="staffLoginForm"
+					class="form-horizontal" action="/perform_login" method="post"> -->
+				<form name="staffLoginForm"
+					class="form-horizontal" action="/perform_login" method="post">
+
+					<div class="row px-3">
+						<div class="form-group col-md-12">
+							<label class="mb-3 control-label" for="username">Username</label>
+							<input type="text" ng-model="user.username" name="username"
+							class="username form-control input-sm" placeholder="" maxlength="16" pattern="[a-zA-Z0-9]*" required/>
+							<div class="has-error" ng-show="staffLoginForm.username.$dirty">
+								<span ng-show="staffLoginForm.username.$error.required">Please enter your username.</span>
+								<span
+									ng-show="staffLoginForm.username.$invalid">Username is invalid.</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="row px-3">
+						<div class="form-group col-md-12">
+							<label class="mb-3 control-label" for="password">Password</label>
+							<input type="password" ng-model="user.password" name="password"
+							class="password form-control input-sm"
+							placeholder="********" maxlength="32" pattern="[a-zA-Z0-9 ]*" required/>
+							<div class="has-error" ng-show="staffLoginForm.password.$dirty">
+								<span ng-show="staffLoginForm.password.$error.required">Please enter your password.</span>
+								<span ng-show="staffLoginForm.password.$invalid">Invalid password.</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="row px-3">
+						<div class="form-group my-0">
+							<input type="submit" value="Log In"
+								class="btn btn-primary btn-sm"
+								ng-disabled="staffLoginForm.$invalid" />
+						</div>
+ 					</div>
+				</form>
+			</div>
+			<div ng-controller="LoginController">
+				<div ng-show="loginFailed">Cannot Log In.</div>
+			</div>
+<!-- 			<div ng-show="success">Successfully Logged In!</div>
+			<div ng-show="failure">Cannot Log In.</div> -->
+		</div>
+
+		<a href="./login.html">Back</a>
+	</div>
+
+</body>
+</html>

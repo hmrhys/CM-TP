@@ -1,0 +1,158 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Add Inventory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+</style>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+		src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+<body>
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('inventoryCtrl', function($scope, $http, $q) {
+			console.log("Hit!");
+			
+			$scope.ingredients = [];
+			$scope.amountsToAdd = [];
+			$scope.inventory = '';
+
+
+			$scope.reset = function() {
+				updateIngredients();
+				if (undefined != $scope.addInventoryForm) {
+					$scope.addInventoryForm.$setPristine();
+				}
+			}
+			
+			function updateIngredients() {
+				$http.get("/api/v1/inventoryList").then(function(response) {
+	  				$scope.ingredients = response.data;
+	  				
+	  				$scope.amountsToAdd = [];
+					for (var i = 0; i < $scope.ingredients.length; i++) {
+						$scope.amountsToAdd[i] = 0;
+					}
+	  			});
+				
+				$http.get("api/v1/inventory").then(function(response) {
+					$scope.inventory = response.data;
+				});
+				
+			};
+		
+			
+			function updateAmounts() {
+				if ($scope.inventory !== '') {
+					for (var i = 0; i < $scope.ingredients.length; i++) {
+						$scope.inventory.inventoryList[i].amount = $scope.ingredients[i].amount + $scope.amountsToAdd[i];
+					}
+				}
+			}
+			
+
+			$scope.submit = function() {
+				$scope.addRecipe();
+			}
+			
+			
+			$scope.addInventory = function() {
+				$scope.success = false;
+				$scope.failure = false;
+				
+				updateAmounts();
+				
+				$http.put("/api/v1/inventory", $scope.inventory).then(
+						function(success) {
+							$scope.success = true;
+							$scope.failure = false;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+							$scope.success = false;
+						    $scope.failure = true;
+						    console.error("Error while adding inventory.");
+						    alert("There was an error while adding the inventory."); // Display error message to user
+						});
+				
+			}
+
+			$scope.reset();
+		});
+		/*]]>*/
+	</script>
+
+
+
+	<div ng-app="myApp" class="generic-container ng-cloak"
+		ng-controller="inventoryCtrl as ctrl">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="lead">Inventory</span>
+			</div>
+
+ 			<div class="formcontainer">
+ 			
+				<form ng-submit="addInventory()" name="addInventoryForm"
+					class="form-horizontal">
+					
+					<h5>Ingredients</h5>
+					
+					<div ng-if="0 >= $scope.ingredients.length">There are no ingredients in the
+						Coffee Maker.</div>
+
+					<ul>
+  						<li ng-repeat="ingredient in ingredients track by $index">
+    						<label for="ingredient-{{ $index }}">{{ ingredient.name }}, Current Amount: {{ingredient.amount}}, Add: </label>
+    						<input type="number" placeholder="{{0}}" name="ingredientAmount-{{ $index }}" min="0" ng-required="true" ng-model="amountsToAdd[$index]">
+    						
+    						<div class="has-error" ng-show="addInventoryForm['ingredientAmount-'+ $index].$dirty">
+							    <span ng-show="addInventoryForm['ingredientAmount-'+ $index].$error.required">This is a required field.</span>
+							    <span ng-show="addInventoryForm['ingredientAmount-'+ $index].$error.min">Minimum amount is 0.</span>
+							    <span ng-show="addInventoryForm['ingredientAmount-'+ $index].$invalid">This field is invalid.</span>
+							</div>
+
+  						</li>
+					</ul>
+					
+					
+
+				
+					<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Submit"
+								class="btn btn-primary btn-sm"
+								ng-disabled="addRecipeForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="addRecipeForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+				</form>
+			</div>
+		</div>
+
+		<a href="/staffindex">Home</a>
+	</div>
+
+
+
+</body>
+</html>
+ 

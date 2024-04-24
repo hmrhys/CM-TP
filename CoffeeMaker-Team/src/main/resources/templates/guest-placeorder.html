@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Place Orders</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-cookies.js"></script>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', ['ngCookies']);
+		app.controller('addOrderCtrl', ['$scope', '$http', '$q', '$cookies', function($scope, $http, $q, $cookies) {
+
+ 			function updateRecipes() {
+				$http.get("/api/v1/recipes").then(function (response) {
+	  				$scope.recipes = response.data;
+	  			});
+			};
+			
+			function getUsername() {
+				// You can retrieve the value of the cookie later if needed
+			    $scope.customer.username = $cookies.get('username');
+			};
+
+			function updateOrders() {
+				$http.get("/api/v1/ordersAll").then(function(response) {
+	  				$scope.orders = response.data;
+	  			});
+			};
+			
+			$scope.reset = function() {
+				$scope.customer  = {
+					username : '',
+				};
+				
+				getUsername();
+				console.log($scope.customer.username);
+				$scope.order = {
+						recipeOrdered : '',
+						customer : $scope.customer,
+				};
+				$scope.selectedRecipe = '';
+				$scope.amtPaid = '';
+				updateOrders();
+				updateRecipes();
+				if (undefined != $scope.chooseRecipeForm) {
+					$scope.chooseRecipeForm.$setPristine();
+				}
+			}	
+
+			$scope.orderCoffee = function() {
+				var amtPaid = $scope.amtPaid;
+				console.log(amtPaid);
+				var name = $scope.selectedRecipe.name;
+				$scope.success = false;
+				$scope.failure = false;
+				$http.post("/api/v1/orderCoffee/" + name, amtPaid).then(
+						function(success) {
+							$scope.change = success.data.message;
+							$scope.success = true;
+							console.log($scope.submissionSuccess);
+							$scope.addOrder();
+							
+							// Store token in a cookie with a specified expiration time
+					        var expiryDate = new Date();
+					        expiryDate.setDate(expiryDate.getDate() + 1); // Expires in 1 day
+					        $cookies.put('orderPlaced', true, { expires: expiryDate });
+						}, function(rejection) {
+							console.log(rejection.data);
+							$scope.failure = true;
+							$scope.error = rejection.data.message;
+							alert(rejection.data.message);
+						});
+			}
+			
+			$scope.addOrder = function() {
+				$scope.success = false;
+				$scope.failure = false;
+				$http.put("/api/v1/orderAdd", $scope.order).then(
+						function(success) {
+							$scope.success = true;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+						    $scope.failure = true;
+						    console.error("Error while placing order.");
+						    alert(rejection.data.message); // Display error message to user
+						});
+			}
+			
+			$scope.submit = function() {
+				$scope.order.recipeOrdered = $scope.selectedRecipe;
+				$scope.orderCoffee();
+				updateOrders();
+			}
+
+			$scope.reset();
+			
+			updateOrders();
+			
+			console.log($scope.orders);
+		}]);
+		/*]]>*/
+	</script>
+
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="addOrderCtrl as ctrl">
+		<h1>Order Coffee!</h1>
+		<div>
+			<form ng-submit="submit()", name="chooseRecipeForm" class="form-horizontal">
+			<div class="col-sm">
+				What would you like to order? <br />
+				<select ng-model="selectedRecipe"
+						ng-options="item as item.name + ': $' + item.price for item in recipes" 
+						required="true">
+					<option value="">Select Recipe to Order</option>
+				</select>
+			</div>
+			
+			<br />
+			<br /> <label for="amtPaid">Enter payment: $</label> <input type="number" min="0"
+				ng-model="amtPaid" name="amtPaid" required="true" /> 
+				<div class="has-error" ng-show="chooseRecipeForm.$dirty">
+									<span ng-show="chooseRecipeForm.amtPaid.$error.required">This
+										is a required field.</span> <span
+										ng-show="chooseRecipeForm.amtPaid.$error.min">Minimum amount
+										is 0.</span> <span ng-show="chooseRecipeForm.amtPaid.$invalid">This
+										field is invalid. </span>
+								</div>
+				<br />
+			
+			
+			<div ng-if="0 >= recipes.length">There are no recipes in the
+				Coffee Maker.</div>
+			<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Submit"
+								class="btn btn-primary btn-sm"
+								ng-disabled="chooseRecipeForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="chooseRecipeForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+			<br />
+			
+			
+			</form>
+			
+			<div ng-show="success">Order Created. Your change is ${{change}}.</div>
+			<div ng-show="failure">Error while adding Order: {{error}}</div>
+
+		</div>
+		<a href="/guestindex.html">Back</a>
+	</div>
+
+
+
+</body>
+</html>

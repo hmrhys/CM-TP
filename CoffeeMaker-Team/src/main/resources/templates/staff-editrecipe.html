@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Edit Recipes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body>
+	<script> 
+    /*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('editRecipesCtrl', function($scope, $http) {
+			
+			$scope.displayEditForm = false;
+			
+			function updateRecipes() {
+				$http.get("/api/v1/recipes").then(function (response) {
+	  				$scope.recipes = response.data;
+	  			});
+			};
+			
+			function updateIngredients() {
+				$http.get("/api/v1/inventoryList").then(function(response) {
+	  				$scope.ingredients = response.data;
+	  			});
+			};
+			
+			$scope.reset = function() {
+				$scope.recipe = {
+					name : '',
+					price : '',
+					ingredients : []
+				};
+				$scope.selectedIngredients = [];
+				$scope.ingredientQuantities = [];
+				$scope.selectedRecipe = '';
+				updateIngredients();
+				updateRecipes();
+				$scope.displayEditForm = false;
+				if (undefined != $scope.editRecipeForm) {
+					$scope.editRecipeForm.$setPristine();
+				}
+				if (undefined != $scope.chooseRecipeForm) {
+					$scope.chooseRecipeForm.$setPristine();
+				}
+			};
+			
+			
+			$scope.select = function() {
+				var added = false;
+				console.log($scope.selectedRecipe);
+				if ($scope.selectedRecipe !== '') {
+					$scope.displayEditForm = true;
+					$scope.recipe.name = $scope.selectedRecipe.name
+					$scope.recipe.price = $scope.selectedRecipe.price
+					for (var i = 0; i < $scope.ingredients.length; i++) {
+						for (var k = 0; k < $scope.selectedRecipe.ingredients.length; k++) {
+							if ($scope.ingredients[i].name === $scope.selectedRecipe.ingredients[k].name) {
+								$scope.selectedIngredients[i] = true;
+								$scope.ingredientQuantities[i] = $scope.selectedRecipe.ingredients[k].amount;
+								added = true;
+								break;
+							}
+						}
+						if (!added) {
+							$scope.selectedIngredients[i] = false;
+							$scope.ingredientQuantities[i] = null;
+						}
+						added = false;
+					}
+				}
+			};
+			
+			$scope.included = function(ingredient) {
+				if ($scope.selectedRecipe !== '') {
+					for (var i = 0; i < $scope.selectedRecipe.ingredients.length; i++) {
+						if ($scope.selectedRecipe.ingredients[i].name === ingredient.name) {
+							return true;
+						}
+					}
+				}
+				return false;
+			};
+			
+			$scope.getAmount = function(ingredient) {
+				if ($scope.selectedRecipe !== '') {
+					for (var i = 0; i < $scope.selectedRecipe.ingredients.length; i++) {
+						if ($scope.selectedRecipe.ingredients[i].name === ingredient.name) {
+							return $scope.selectedRecipe.ingredients[i].amount;
+						}
+					}
+				}
+				return 0;
+			};
+			
+			$scope.anySelected = function() {
+				var selectedStatus = $scope.sameSelected();
+			    return selectedStatus && $scope.selectedIngredients.some(Boolean);
+			};
+			
+			$scope.sameSelected = function() {
+				var selectedNum = 0;
+				var quantityNum = 0;
+				for (var i = 0; i < $scope.selectedIngredients.length; i++) {
+					  if ($scope.selectedIngredients[i]) {
+						  selectedNum++;
+					  }
+					  if ($scope.ingredientQuantities[i] !== null && $scope.ingredientQuantities[i] !== 0) {
+						  quantityNum++;
+					  }
+				}
+				return selectedNum <= quantityNum;
+			};
+			
+			$scope.addToRecipe = function() {
+				$scope.recipe.ingredients = [];
+				for (let i = 0; i < $scope.selectedIngredients.length; i++) {
+						if ($scope.selectedIngredients[i]) {
+ 							$scope.ingredients[i].amount = $scope.ingredientQuantities[i];
+							$scope.recipe.ingredients.push($scope.ingredients[i]);
+						}
+				}
+			};
+			
+			$scope.saveEdits = function() {
+				$scope.success = false;
+				$scope.failure = false;
+				
+				$scope.addToRecipe();
+				console.log($scope.recipe.ingredients);
+				
+				$http.put("/api/v1/recipeEdit", $scope.recipe).then(
+						function(success) {
+							$scope.success = true;
+							$scope.failure = false;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+							$scope.success = false;
+						    $scope.failure = true;
+						    console.error("Error while adding recipe");
+						    alert(rejection.data.message); // Display error message to user
+						});
+			};
+			
+			
+			
+			
+			$scope.reset();
+		});
+	/*]]>*/
+	</script>
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="editRecipesCtrl as ctrl">
+
+		<h1>Coffee Recipes</h1>
+
+		<div>
+			<form ng-submit="select()", name="chooseRecipeForm" class="form-horizontal">
+			<div class="col-sm">
+				Select Recipe: <br />
+				<select ng-model="selectedRecipe"
+						ng-options="item as item.name for item in recipes"
+						required="true">
+					<option value="">Select Recipe for Editing</option>
+				</select>
+			</div>
+			
+			<br />
+			
+			<div ng-if="0 >= recipes.length">There are no recipes in the
+				Coffee Maker.</div>
+			<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Select"
+								class="btn btn-primary btn-sm"
+								ng-disabled="chooseRecipeForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="chooseRecipeForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+			<br />
+			
+			
+			</form>
+			
+			
+			<form ng-submit="saveEdits()" ng-show="displayEditForm" name="editRecipeForm"
+					class="form-horizontal">
+
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Name</label>
+							<div class="col-md-7">
+								<p>{{selectedRecipe.name}}<p>
+							</div>
+						</div>
+					</div>
+
+ 					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Price</label>
+							<div class="col-md-7">
+								<input type="number" ng-model="recipe.price" name="price"
+									class="price form-control input-sm"
+									placeholder="Enter price" required="0" min="0"/>
+								<div class="has-error" ng-show="editRecipeForm.$dirty">
+									<span ng-show="editRecipeForm.price.$error.required">This
+										is a required field.</span> <span
+										ng-show="editRecipeForm.price.$error.min">Minimum amount
+										is 0.</span> <span ng-show="editRecipeForm.price.$invalid">This
+										field is invalid. </span>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<label class="col-md-2 control-lable" for="file">Ingredients</label>
+						<br/>
+						<br/>
+						<div class="col-md-7" ng-repeat="ingredient in ingredients track by $index">
+							<input type="checkbox"
+									ng-model="$parent.selectedIngredients[$index]"
+									ng-checked="included(ingredient)"
+									value="{{ingredient.name}}"
+									name="ingredients"
+									ng-required="!anySelected()"/>
+						 	{{ingredient.name}}
+						 	<div class="has-error" ng-show="addRecipeForm.$dirty">
+						 		<span ng-show="editRecipeForm.ingredients.$error.required">Must have at least one ingredient.</span>
+						 	</div>
+							</input>
+							<input type="number"
+           						placeholder="{{getAmount(ingredient)}}"
+           						name="ingredientAmount-{{ $index }}"
+           						ng-model="ingredientQuantities[$index]"
+								ng-change="sameSelected()"
+           						min="0">
+							
+							<div class="has-error" ng-show="editRecipeForm['ingredientAmount-'+ $index].$dirty">  
+           						<span ng-show="editRecipeForm['ingredientAmount-'+ $index].$error.required">This is a required field.</span>
+							    <span ng-show="editRecipeForm['ingredientAmount-'+ $index].$error.min">Minimum amount is 1.</span>
+							    <span ng-show="editRecipeForm['ingredientAmount-'+ $index].$invalid">This field is invalid.</span>
+							</div>
+						</div>
+					</div>
+					
+					
+					
+					<div class="col-sm">
+  						<div ng-init="addedIngredients = addToRecipe()">
+   						 </div>
+					</div>
+					
+					
+
+
+					<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Save"
+								class="btn btn-primary btn-sm"
+								ng-disabled="editRecipeForm.$invalid" />
+						</div>
+ 					</div>
+				</form>
+
+		</div>
+		<a href="/staffindex">Home</a>
+	</div>
+
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+
+<div>
+   <h1 class="home-text">Edit Recipe</h1>
+   
+   <h2>Latte</h2>
+   
+   <h3>Edit Price</h3>
+   <span>Current Price: $6</span> <br/>
+   <span>New Price: $</span>
+   <input type="text" placeholder="New Price" name="New Price" /> <br /> <br />
+   
+   <h3>Edit Ingredients</h3>
+   <table>
+     <tbody>
+       <tr>
+         <th>Select</th>
+         <th>Ingredients</th>
+         <th>Unit</th>
+         <th>Amount</th>
+       </tr>
+       <tr>
+         <td><input type="checkbox" checked /></td>
+         <td>Milk</td>
+         <td>Cups</td>
+         <td>1</td>
+       </tr>
+       <tr>
+         <td><input type="checkbox" /></td>
+         <td>Sugar</td>
+         <td>Teaspoon</td>
+         <td></td>
+       </tr>
+       <tr>
+         <td><input type="checkbox" checked /></td>
+         <td>Coffee</td>
+         <td>Ounces</td>
+         <td>4</td>
+       </tr>
+       <tr>
+         <td><input type="checkbox" /></td>
+         <td>Chocolate</td>
+         <td>Teaspoon</td>
+         <td></td>
+       </tr>
+       <tr>
+         <td><input type="checkbox" /></td>
+         <td>Cinnamon</td>
+         <td>Teaspoon</td>
+         <td></td>
+       </tr>
+       <tr> 
+       </tr>
+       <tr>
+       </tr>
+     </tbody>
+   </table>
+   
+   <button type="button" class="home-button1 button">Add New Ingredient</button> <br /> <br /> <br />
+   
+   <button type="button" class="home-button button">Save</button>
+   <button type="button" class="home-button button">Cancel</button>
+   
+ </div> -->
+
+ 

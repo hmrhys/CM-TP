@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Coffee Maker Staff</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/bootstrap-grid.css" />
+<link rel="stylesheet" href="css/app.css" />
+
+<!-- <link rel="stylesheet" href="../static/css/bootstrap.css" />
+<link rel="stylesheet" href="../static/css/bootstrap-grid.css" />
+<link rel="stylesheet" href="../static/css/app.css" /> -->
+</head>
+<body>
+	<div ng-app="myApp">
+		<h1 class="text-center pt-4">Coffee Maker Staff</h1>
+		<div class="title-logout d-flex justify-content-space-between">
+			<h3>Welcome, <span th:text="${username}"></span>!</h3>
+			<a class="align-self-center" href="/logout">
+				<button class="btn btn-outline-secondary" type="button">
+					Logout
+				</button>
+			</a>
+		</div>
+		<div class="container-p-15">
+			<ul class="list-group">
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-addingredients.html">Add Ingredients</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-addinventory.html">Add Inventory</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-addrecipe.html">Add a Recipe</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-editrecipe.html">Edit Recipe</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-deleterecipe.html">Delete Recipe</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-fulfillorders.html">View and Fulfill Orders</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="staff-allorders.html">View All Orders</a>
+				</li>
+			</ul>
+		</div>
+		<br></br>
+		<footer class="py-3">
+			<ul class="nav justify-content-center border-bottom pb-3">
+				<li class="nav-item text-center"><i><a href="privacypolicy-staff.html" class="nav-link px-2 text-body-secondary">
+					Privacy Policy
+				</a></i></li>
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">Pricing</a></li> -->
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">FAQs</a></li> -->
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">About</a></li> -->
+			</ul>
+			<p class="text-center text-body-secondary">© 2024 CoffeeMakers, Inc</p>
+		</footer>
+	</div>
+	
+</body>
+</html>

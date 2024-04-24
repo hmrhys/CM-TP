@@ -1,0 +1,216 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Add Recipes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+	<script
+		src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('addRecipeCtrl', function($scope, $http, $q) {
+			console.log("Hit!");
+			
+			$scope.selectedIngredients = [];
+			$scope.ingredientQuantities = [];
+
+			$scope.reset = function() {
+				$scope.recipe = {
+					name : '',
+					price : '',
+					ingredients : []
+				};
+				$scope.selectedIngredients = [];
+				$scope.ingredientQuantities = [];
+				updateIngredients();
+				if (undefined != $scope.addRecipeForm) {
+					$scope.addRecipeForm.$setPristine();
+				}
+			}
+			
+			function updateIngredients() {
+				$http.get("/api/v1/inventoryList").then(function(response) {
+	  				$scope.ingredients = response.data;
+	  			});
+			}
+			
+
+			$scope.submit = function() {
+				$scope.addRecipe();
+			}
+			
+			$scope.addToRecipe = function() {
+				for (let i = 0; i < $scope.selectedIngredients.length; i++) {
+						if ($scope.selectedIngredients[i]) {
+							
+ 							$scope.ingredients[i].amount = $scope.ingredientQuantities[i];
+							$scope.recipe.ingredients.push($scope.ingredients[i]);
+						}
+				}
+				console.log($scope.recipe);
+			};
+			
+			$scope.anySelected = function() {
+			      return $scope.selectedIngredients.some(Boolean);
+			};
+			
+			$scope.sameSelected = function() {
+				  return $scope.selectedIngredients.length !== $scope.ingredientQuantities.length;
+			};
+			
+			$scope.addRecipe = function() {
+				$scope.success = false;
+				$scope.failure = false;
+				
+				$scope.addToRecipe();
+
+				$http.post("/api/v1/recipes", $scope.recipe).then(
+						function(success) {
+							$scope.success = true;
+							$scope.failure = false;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+							$scope.success = false;
+						    $scope.failure = true;
+						    console.error("Error while adding recipe");
+						    $scope.recipe.ingredients = [];
+						    alert(rejection.data.message); // Display error message to user
+						});
+			}
+
+			$scope.reset();
+		});
+		/*]]>*/
+	</script>
+
+
+
+	<div ng-app="myApp" class="generic-container ng-cloak"
+		ng-controller="addRecipeCtrl as ctrl">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="lead">Add Recipe</span>
+			</div>
+
+ 			<div class="formcontainer">
+				<form ng-submit="submit()" name="addRecipeForm"
+					class="form-horizontal">
+
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Name</label>
+							<div class="col-md-7">
+								<input type="text" ng-model="recipe.name" name="name"
+									class="name form-control input-sm"
+									placeholder="Enter recipe name" required="0" />
+								<div class="has-error" ng-show="addRecipeForm.$dirty">
+									<span ng-show="addRecipeForm.name.$error.required">This
+										is a required field.</span> <span
+										ng-show="addRecipeForm.name.$invalid">This field is
+										invalid.</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+ 					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Price</label>
+							<div class="col-md-7">
+								<input type="number" ng-model="recipe.price" name="price"
+									class="price form-control input-sm"
+									placeholder="Enter recipe price" required="0" min="0"/>
+								<div class="has-error" ng-show="addRecipeForm.$dirty">
+									<span ng-show="addRecipeForm.price.$error.required">This
+										is a required field.</span> <span
+										ng-show="addRecipeForm.price.$error.min">Minimum amount
+										is 0.</span> <span ng-show="addRecipeForm.price.$invalid">This
+										field is invalid. </span>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<label class="col-md-2 control-lable" for="file">Ingredients</label>
+						<br/>
+						<br/>
+						<div class="col-md-7" ng-repeat="ingredient in ingredients track by $index">
+							<input type="checkbox"
+									ng-model="$parent.selectedIngredients[$index]"
+									value="{{ingredient.name}}"
+									name="ingredients"
+									ng-required="!anySelected()"/>
+						 	{{ingredient.name}}
+						 	<div class="has-error" ng-show="addRecipeForm.$dirty">
+						 		<span ng-show="addRecipeForm.ingredients.$error.required">Must have at least one ingredient.</span>
+						 	</div>
+							</input>
+							<input type="number"
+           						ng-show="selectedIngredients[$index]"
+           						placeholder="Enter quantity"
+           						name="ingredientAmount-{{ $index }}"
+           						ng-model="ingredientQuantities[$index]"
+           						ng-required="sameSelected()" 
+           						min="1">
+           						
+           					<div class="has-error" ng-show="addRecipeForm['ingredientAmount-'+ $index].$dirty">  
+           						<span ng-show="addRecipeForm['ingredientAmount-'+ $index].$error.required">This is a required field.</span>
+							    <span ng-show="addRecipeForm['ingredientAmount-'+ $index].$error.min">Minimum amount is 1.</span>
+							    <span ng-show="addRecipeForm['ingredientAmount-'+ $index].$invalid">This field is invalid.</span>
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-sm">
+  						<div ng-init="addedIngredients = addToRecipe()">
+   						 </div>
+					</div>
+					
+					
+
+
+					<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Submit"
+								class="btn btn-primary btn-sm"
+								ng-disabled="addRecipeForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="addRecipeForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+				</form>
+			</div>
+			<div ng-show="success">Recipe Created</div>
+			<div ng-show="failure">Error while adding recipe.</div>
+		</div>
+
+		<a href="/staffindex">Home</a>
+	</div>
+
+
+
+</body>
+</html>

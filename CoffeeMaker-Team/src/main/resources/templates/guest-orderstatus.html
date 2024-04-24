@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Order Status</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-cookies.js"></script>
+<body>
+	<script> 
+    /*<![CDATA[*/
+		var app = angular.module('myApp', ['ngCookies']);
+		app.controller('orderStatusCtrl', ['$scope', '$http', '$cookies', function($scope, $http, $cookies) {
+			
+			$scope.displayStatusForm = false;
+			
+			function getUsername() {
+				// You can retrieve the value of the cookie later if needed
+			    $scope.username = $cookies.get('username');
+			};
+			
+			function updateOrders() {
+				getUsername();
+				var username = $scope.username;
+				$http.get("/api/v1/ordersNotPickedUp/" + username).then(function (response) {
+	  				$scope.orders = response.data;
+	  				console.log($scope.orders);
+	  			});
+			};
+			
+			function updateOrderStatus() {
+				if ($scope.selectedRecipe !== '') {
+					var id = $scope.selectedOrder.id;
+					$http.get("/api/v1/order/" + id).then(function (response) {
+		  				$scope.orderStatus = response.data;
+		  			});
+					console.log($scope.orderStatus);
+				}
+			}
+			
+			$scope.reset = function() {
+				$scope.selectedOrder = '';
+				updateOrders();
+				$scope.displayStatusForm = false;
+				if (undefined != $scope.chooseOrderForm) {
+					$scope.chooseOrderForm.$setPristine();
+				}
+				if (undefined != $scope.orderStatusForm) {
+					$scope.orderStatusForm.$setPristine();
+				}
+			};
+			
+			
+			$scope.select = function() {
+				if ($scope.selectedRecipe !== '') {
+					$scope.displayStatusForm = true;
+					var id = $scope.selectedOrder.id;
+					$http.get("/api/v1/order/" + id).then(function (response) {
+		  				$scope.orderStatus = response.data;
+		  			});
+				}
+			};
+			
+			$scope.updateStatus = function() {
+				updateOrderStatus();
+			};
+			
+			$scope.pickUpOrder = function() {
+				var id = $scope.orderStatus.id;
+				$http.post("/api/v1/pickUpOrder/" + id).then(
+						function(success) {
+							$scope.success = true;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+							$scope.failure = true;
+							$scope.error = rejection.data.message;
+						    console.error("Error while fulfilling order.");
+						    alert(rejection.data.message); // Display error message to user
+						});
+				
+			}
+			
+			$scope.reset();
+		}]);
+	/*]]>*/
+	</script>
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="orderStatusCtrl as ctrl">
+
+		<h1>Order Status</h1>
+
+		<div>
+			<form ng-submit="select()", name="chooseOrderForm" class="form-horizontal">
+			<div class="col-sm">
+				Select a Current Order: <br />
+				<select ng-model="selectedOrder"
+						ng-options="item as item.recipeOrdered.name for item in orders"
+						required="true">
+					<option value="">Select Order</option>
+				</select>
+			</div>
+			
+			<br />
+			
+			<div ng-if="0 >= orders.length">There are no current orders in the
+				Coffee Maker.</div>
+			<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Select"
+								class="btn btn-primary btn-sm"
+								ng-disabled="chooseOrderForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="chooseOrderForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+			<br />
+			</form>
+			
+			
+			<form ng-submit="updateStatus()" ng-show="displayStatusForm" name="orderStatusForm"
+					class="form-horizontal">
+
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Order:  {{orderStatus.recipeOrdered.name}}</label>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="form-group col-md-12">
+							<label class="col-md-2 control-lable" for="file">Status</label>
+							<div class="col-md-7">
+								{{orderStatus.status ? "Ready for Pickup!" : "Processing..."}}
+							</div>
+						</div>
+					</div>
+
+
+					<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Refresh Status"
+								class="btn btn-primary btn-sm"
+								ng-disabled="chooseOrderForm.$pristine" />
+							<button type="button" ng-click="pickUpOrder()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="chooseOrderForm.$pristine || !orderStatus.status">Pick Up Order</button>
+						</div>
+						
+ 					</div>
+				</form>
+
+		</div>
+		<a href="/guestindex.html">Home</a>
+	</div>
+
+
+
+</body>
+</html>
+ 

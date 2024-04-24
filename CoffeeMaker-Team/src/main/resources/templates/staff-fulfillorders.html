@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Fulfill Orders</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body>
+	<script> 
+    /*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('fulfillOrdersCtrl', function($scope, $http) {
+			
+			function updateOrders() {
+				$http.get("/api/v1/ordersNotCompleted").then(function(response) {
+	  				$scope.orders = response.data;
+	  				console.log($scope.orders);
+	  			});
+			}
+			
+			function getUsername() {
+				$http.get("/currentusername").then(function (response) {
+	  				$scope.staffUsername = response.data.message;
+	  			});
+			};
+			
+			
+			$scope.reset = function() {
+				getUsername();
+				$scope.selectedOrder = '';
+				updateOrders();
+				if (undefined != $scope.fulfillOrderForm) {
+					$scope.fulfillOrderForm.$setPristine();
+				}
+			};
+			
+			
+			$scope.select = function() {
+				$scope.fulfillOrder();
+				updateOrders();
+			};
+			
+			$scope.fulfillOrder = function() {
+				var id = $scope.selectedOrder.id;
+				console.log($scope.selectedOrder);
+				$scope.success = false;
+				$scope.failure = false;
+				$http.post("/api/v1/makecoffee/" + id, $scope.staffUsername).then(
+						function(success) {
+							$scope.success = true;
+						    alert(success.data.message);
+							$scope.reset();
+						}, function(rejection) {
+							$scope.failure = true;
+							$scope.error = rejection.data.message;
+						    console.error("Error while fulfilling order.");
+						    alert(rejection.data.message); // Display error message to user
+						});
+
+			};
+			
+			$scope.reset();
+		});
+	/*]]>*/
+	</script>
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="fulfillOrdersCtrl as ctrl">
+
+		<h1>Available Orders</h1>
+
+		<div>
+			<form ng-submit="select()", name="fulfillOrderForm" class="form-horizontal">
+			<div class="col-sm">
+				Select Order: <br />
+				<select ng-model="selectedOrder"
+						ng-options="item as item.recipeOrdered.name + ' - ' + item.customer.username for item in orders"
+						required="true">
+					<option value="">Select Order to Fulfill</option>
+				</select>
+			</div>
+			
+			<br />
+			
+			<div ng-if="0 >= orders.length">There are no unfulfilled orders in the
+				Coffee Maker.</div>
+			<div class="row">
+						<div class="form-actions floatRight">
+							<input type="submit" value="Fulfill"
+								class="btn btn-primary btn-sm"
+								ng-disabled="fulfillOrderForm.$invalid" />
+							<button type="button" ng-click="reset()"
+								class="btn btn-warning btn-sm"
+								ng-disabled="fulfillOrderForm.$pristine">Reset Form</button>
+						</div>
+ 					</div>
+			<br />
+			</form>
+			
+			<div ng-show="success">Order successfully fulfilled.</div>
+			<div ng-show="failure">Error while fulfilling order: {{error}}</div>
+
+		</div>
+		<a href="/staffindex">Home</a>
+	</div>
+
+
+
+</body>
+</html>
+ 

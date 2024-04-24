@@ -1,0 +1,469 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Coffee Maker Guest</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/bootstrap-grid.css" />
+<link rel="stylesheet" href="css/app.css" />
+
+
+<!-- <link rel="stylesheet" href="../static/css/bootstrap.css" />
+<link rel="stylesheet" href="../static/css/bootstrap-grid.css" />
+<link rel="stylesheet" href="../static/css/app.css" /> -->
+</head>
+<body>
+	
+		<script
+			src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js">
+		</script>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-cookies.js"></script>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', ['ngCookies']);
+		
+		app.directive('usernameDirective', function() {
+			return {
+				require : 'ngModel',
+				link : function(scope, element, attr, mCtrl) {
+					function checkUsername(username) {
+						scope.getUsernames();
+						if (scope.usernames.includes(username)) {
+							mCtrl.$setValidity('unique', false);
+						} else {
+							mCtrl.$setValidity('unique', true);
+						}
+						return username;
+					}
+					mCtrl.$parsers.push(checkUsername);
+				}
+			};
+		});
+		
+		// Define the 'AuthService' service within the 'myApp' module
+		app.factory('AuthService', ['$http', '$cookies', function($http, $cookies) {
+			var authService = {};
+
+			/* // Method to log in the user
+			authService.login = function(guest) {
+				return $http.post('/perform_login', guest)
+					.then(function(response) {
+						alert(response.data.token);
+						alert(response.data.username);
+						// Save token or user information in cookie
+						$cookies.put('auth_token', response.data.token);
+						// Optionally, you can store user information like username or role in cookie
+						$cookies.put('username', response.data.username);
+						$cookies.put('password', response.data.password);
+					})
+					.catch(function(error) {
+		                // If login fails, display error message
+		                alert("there was an error logging in");
+		                console.error('Login failed. Please check your credentials.');
+		            });
+			}; */
+			
+			// Method to log in the user
+			authService.login = function(guest) {
+				return $http.post('/login', {
+		            username: guest.username,
+		            password: guest.password
+		        })
+		        .then(function(response) {
+		        	// Save token or user information in cookie
+		            $cookies.put('auth_token', response.data.token);
+		            // Optionally, you can store user information like username or role in cookie
+		            $cookies.put('username', response.data.username);
+		            $cookies.put('password', response.data.password);
+				})
+				.catch(function(error) {
+					// If login fails, display error message
+					alert("there was an error logging in");
+					console.error('Login failed. Please check your credentials.');
+		        });
+			};
+
+			// Method to log out the user
+			authService.logout = function() {
+				// Remove authentication-related cookies
+				$cookies.remove('token');
+				$cookies.remove('username');
+			};
+
+			// Method to check if the user is authenticated
+			authService.isAuthenticated = function() {
+				// Check if the authentication token exists in the cookie
+				return !!$cookies.get('token');
+			};
+
+			// Method to get the current user's information (optional)
+			authService.getCurrentUser = function() {
+				// Retrieve user information from cookies if available
+				return {
+					username: $cookies.get('username'),
+				};
+			};
+			
+			// Method to check if auth token exists
+			authService.checkToken = function() {
+				// Access the cookie named 'auth_token'
+			    var authToken = $cookies.get('token');
+
+			    // Check if the auth token exists
+			    if (authToken) {
+			        // Token exists, perform further actions
+			        console.log('Authentication token:', authToken);
+			        // You can use the token for further authentication or other purposes
+			    } else {
+			        // Token does not exist
+			        console.log('No authentication token found');
+			        // Handle the case when the token does not exist
+			    }
+			    
+			    return authToken;
+			}
+
+			return authService;
+		}]);
+		
+		app.controller('guestIndexCtrl', ['$scope', '$http', '$q', '$cookies', 'AuthService', function($scope, $http, $q, $cookies, AuthService) {
+			// Function to check if the token exists
+            $scope.checkToken = function() {
+                var token = $cookies.get('token');
+                return token;
+            };
+			
+			AuthService.checkToken();
+
+			$scope.guest = AuthService.getCurrentUser();
+			
+			$scope.reset = function() {				
+				$scope.guest  = {
+					username : '',
+					password : '',
+				};
+				
+				$scope.user = {
+					username : '',
+					password : ''
+				};
+				
+				updateUserList();
+				
+				$scope.orderPlaced = $cookies.get('orderPlaced');
+				if ($scope.orderPlaced === undefined) {
+				    $scope.orderPlaced = false;
+				}
+				
+				$scope.isLoggedIn = AuthService.isAuthenticated();
+				console.log("isLoggedIn:");
+				console.log($scope.isLoggedIn);
+
+				$scope.guest = AuthService.getCurrentUser();
+				console.log($scope.guest.username);
+			}
+			
+			$scope.getUsernames = function() {
+				$scope.usernames = [];
+				updateUserList();
+
+				for (let i = 0; i < $scope.userList.length; i++) {
+					$scope.usernames.push($scope.userList[i].username);
+				}
+			}
+
+			function updateUserList() {
+				$http.get("/api/v1/user").then(function(response) {
+					$scope.userList = response.data;
+				});
+			}
+			
+			/* $scope.thisLogin = function() {
+				console.log("trying to log in with this account:");
+				console.log($scope.guest);
+				// Make a request to your backend for authentication
+		        $http.post('/perform_login', $scope.guest)
+		            .then(function(response) {
+		                // If login successful, redirect to dashboard or another page
+		                alert(response.data);
+		                console.log("logged in i think?!!!");
+		                
+		                AuthService.checkToken();
+		            })
+		            .catch(function(error) {
+		                // If login fails, display error message
+		                console.log("Login failed. Please check your credentials.");
+		            });
+			} */
+			
+			$scope.login = function() {
+		        AuthService.login($scope.guest)
+		            .then(function() {
+		                // Optionally, you can redirect the user to a different page upon successful login
+		                // window.location.href = '/dashboard';
+		                console.log("signed in and saved in cookies!");
+		               	alert(AuthService.checkToken());
+		            })
+		            .catch(function(error) {
+		                // Handle login error
+		                console.error('Login failed:', error);
+		            });
+		    };
+
+			$scope.createGuestAccount = function() {
+				if ( !$scope.isLoggedIn ) {
+				$http.post("/api/v1/user/guest").then(
+					function(response) {
+						$scope.success = true;
+						$scope.failure = false;
+						
+						$scope.guest = response.data;
+						
+						var token = response.headers('X-Auth-Token');
+
+				        // Store token in a cookie with a specified expiration time
+				        var expiryDate = new Date();
+				        expiryDate.setDate(expiryDate.getDate() + 1); // Expires in 1 day
+				        $cookies.put('token', token, { expires: expiryDate });
+				        $cookies.put('username', $scope.guest.username, { expires: expiryDate });
+
+				        // alert("guest created!");
+				        // console.log($scope.guest);
+				        
+				        $http.post('/perform_login', $scope.guest).then(
+				        	function(response) {
+								// Save token or user information in cookie
+								console.log($cookies.get('token'));
+								console.log($cookies.get('username'));
+							})
+							.catch(function(error) {
+				                // If login fails, display error message
+				                alert("there was an error logging in");
+				                console.error('Login failed. Please check your credentials.');
+			            	});
+
+				        AuthService.checkToken();
+
+					}, function(rejection) {
+						$scope.success = false;
+						$scope.failure = true;
+						console.error("Error while creating account.");
+					});
+				} else {
+					console.log("guest account already logged in!");
+				}
+			}
+			
+			$scope.backToHome = function() {
+				if (confirm("If you go back now, you can no longer view your order status.\nAre you sure you would like to continue?\n\nIf you would like to be able to save your orders and view them at any time, please cancel and click \"Create Account\" instead.")) {
+					// check if any orders were placed
+					if ( !$scope.orderPlaced ) {
+						$scope.guest = AuthService.getCurrentUser();
+						// delete the account
+						$http.delete('/api/v1/user/guest/' + $scope.guest.username).then(
+							function (response) {
+								console.log(response);
+								console.log($scope.guest.username + "deleted");
+				            },
+				            function(rejection){
+				                console.error('Error while deleting guest');
+				                console.log(rejection);
+				            }
+				        );
+					}
+					// log out the user and redirect
+					$cookies.remove('orderPlaced');
+					AuthService.logout();
+					window.location.href = '/logout';
+				} else {
+					// don't do anything
+				}
+				/* confirm("Going back to the Login Page now will make it so that you can no longer view your order status, are you sure you would like to continue?\nIf you would like to create an account now, please cancel and hit \"Create Account\""); */
+			}
+			
+			$scope.createCustomer = function() {
+				$scope.guest = AuthService.getCurrentUser();
+				$scope.isLoggedIn = AuthService.isAuthenticated();
+				
+				if ( $scope.isLoggedIn ) {
+					$http.put("/api/v1/customer/" + $scope.guest.username, $scope.user).then(
+						function(success) {
+							$scope.success = true;
+							$scope.failure = false;
+							
+						    alert(success.data.message);
+						    $scope.reset();
+						    // log out user and redirect to customer login page
+						    AuthService.logout();
+						    $cookies.remove('orderPlaced');
+						    window.location.href = '/customerlogin.html';
+						}, function(rejection) {
+							$scope.success = false;
+						    $scope.failure = true;
+						    console.error("Error while updating guest account");
+						    alert(rejection.data.message); // Display error message to user
+						});
+				} else {
+					console.error("Nobody logged in");
+				}
+			}
+			
+			/* // Function to navigate to the place order page
+            $scope.goToPlaceOrder = function() {
+                var token = $scope.checkToken();
+                if (token) {
+                    // Token exists, include it in the request headers
+                    $http.get('/guest-placeorder', { headers: { 'X-Auth-Token': token } })
+                        .then(function(response) {
+                            // Handle successful response or redirect to the place order page
+                            console.log("you can pass");
+                            $location.url('/guest-placeorder.html');
+                        })
+                        .catch(function(error) {
+                            // Handle error response
+                            console.log("i don't think so");
+                        });
+                } else {
+                    // Token does not exist, handle the case as needed (e.g., redirect to login)
+                }
+            }; */
+		    
+		 	/* // Function to create a new account and log in
+		    function createAndLogin() {
+		        // Make a POST request to create the account
+		        $http.post("/api/v1/user/guest")
+		            .then(function(response) {
+		                // Handle success response
+		                console.log(response.data); // Assuming response contains success message
+
+		                // After creating the account, log in with the newly created credentials
+		                $scope.guest = response.data; // Assuming response contains the new account details
+		                
+		                $scope.thisLogin();
+		                // login( $scope.guest.username, $scope.guest.password );
+		            })
+		            .catch(function(error) {
+		                // Handle error response
+		                console.error('Error:', error);
+		                // Display an error message or handle the error condition as needed
+		            });
+		    } */
+			    
+			/* // Check if token exists in cookies
+		    var token = $cookies.get('token');
+
+		    if (token) {
+		        $http.get("/api/v1/user/profile", {
+		            headers: {
+		                'X-Auth-Token': token
+		            }
+		        }).then(
+		            function(response) {
+		                // Handle successful authentication
+		                console.log("Automatic login successful:", response.data);
+		                // Do any additional logic here, such as updating UI or redirecting to another page
+		            },
+		            function(error) {
+		                // Handle authentication error
+		                console.error("Automatic login failed:", error);
+		            }
+		        );
+		    } */
+		    
+		    /* $scope.createGuestAccount(); */
+			$scope.reset();
+		    
+			// Call the createAndLogin function when needed
+		    $scope.createGuestAccount();
+		}]);
+		/*]]>*/
+	</script>
+
+	<div ng-app="myApp" ng-controller="guestIndexCtrl">
+		<h1 class="text-center pt-4">Coffee Maker Guest</h1>
+		<div class="d-flex flex-wrap justify-content-center align-items-center mx-4">
+			<h2 class="d-flex align-self-center me-md-auto pb-2">Welcome, Guest!</h2>
+			
+			<div class="dropdown me-2">
+				<button class="btn btn-outline-primary dropdown-toggle"
+					type="button" id="createAccount" data-bs-toggle="dropdown"
+					aria-expanded="false">Create Account</button>
+				<form name="createAccountForm" class="dropdown-menu p-4" aria-labelledby="createAccount">
+					<div class="mb-3">
+						<label class="form-label" for="username">Username</label>
+						<input type="text" ng-model="user.username" name="username"
+							title="Username must be 8-16 characters long and can only consist of letters and numbers."
+							class="username form-control input-sm" placeholder=""
+							minlength="8" maxlength="16" pattern="[a-zA-Z0-9]*" username-directive required />
+
+						<div class="help-block" for="username" ng-hide="createAccountForm.username.$dirty">
+							Username must be 8-16 characters long and can only consist of letters and numbers.
+						</div>
+						<div class="has-error" ng-show="createAccountForm.username.$dirty">
+							<span ng-show="createAccountForm.username.$error.unique">Username already taken!<br></span>
+							<span ng-show="createAccountForm.username.$error.required">Username is required.<br></span>
+							<span ng-show="createAccountForm.username.$invalid">
+								Username must be 8-16 characters long and can only consist of
+								letters and numbers.</span>
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label" for="password">Password</label>
+						<input type="password" ng-model="user.password" name="password" class="password form-control input-sm"
+							title="Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed)."
+							placeholder="********" minlength="8" maxlength="32" pattern="[a-zA-Z0-9 ]*" required/>
+							
+                        <div class="help-block" for="password" ng-hide="createAccountForm.password.$dirty">
+                        	Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed).
+                        </div>
+						<div class="has-error" ng-show="createAccountForm.password.$dirty">
+							<span ng-show="createAccountForm.password.$error.required">Password is required.<br></span> 
+							<span ng-show="createAccountForm.password.$invalid">
+								Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed).</span>
+						</div>
+					</div>
+					
+					<input type="submit" value="Create Account" class="btn btn-primary btn-sm" ng-click="createCustomer()" ng-disabled="createAccountForm.$invalid" />
+				</form>
+			</div>
+			
+			<a class="align-self-center">
+				<button class="btn btn-outline-secondary" type="button" ng-click="backToHome()">Back to Home</button>
+			</a>
+		</div>
+
+		<div class="container-p-15">
+			<ul class="list-group">
+				<li class="list-group-item fs-mdlg">
+					<a href="/guest-placeorder.html">Place Order</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="/guest-orderstatus.html">View Order Status</a>
+				</li>
+				<li class="list-group-item fs-mdlg">
+					<a href="/guest-vieworders.html">View All Orders</a>
+				</li>
+			</ul>
+		</div>
+		<br></br>
+		
+		<footer class="py-3">
+			<ul class="nav justify-content-center border-bottom pb-3">
+				<li class="nav-item text-center"><i><a href="privacypolicy-guest.html" class="nav-link px-2 text-body-secondary">
+					Privacy Policy
+				</a></i></li>
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">Pricing</a></li> -->
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">FAQs</a></li> -->
+				<!-- <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">About</a></li> -->
+			</ul>
+			<p class="text-center text-body-secondary">© 2024 CoffeeMakers, Inc</p>
+		</footer>
+	</div>
+</body>
+</html>

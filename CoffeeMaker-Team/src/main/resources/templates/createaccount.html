@@ -1,0 +1,317 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create an Account</title>
+<style>
+input.ng-valid {
+	background-color: lightgreen;
+}
+
+input.ng-dirty.ng-invalid-required,input.ng-dirty.ng-invalid-number {
+	background-color: red;
+}
+
+input.ng-dirty.ng-invalid-min {
+	background-color: yellow;
+}
+
+
+</style>
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/bootstrap-grid.css" />
+<link rel="stylesheet" href="css/app.css" />
+
+<!-- <link rel="stylesheet" href="../static/css/bootstrap.css" />
+<link rel="stylesheet" href="../static/css/bootstrap-grid.css" />
+<link rel="stylesheet" href="../static/css/app.css" /> -->
+</head>
+<body>
+	<script
+		src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		
+		
+		app.directive('usernameDirective', function() {
+			return {
+				require : 'ngModel',
+				link : function(scope, element, attr, mCtrl) {
+					function checkUsername(username) {
+						scope.getUsernames();
+						if (scope.usernames.includes(username)) {
+							mCtrl.$setValidity('unique', false);
+						} else {
+							mCtrl.$setValidity('unique', true);
+						}
+						return username;
+					}
+					mCtrl.$parsers.push(checkUsername);
+
+					/* function myValidation(value) {
+					  if (value.indexOf("e") > -1) {
+					    mCtrl.$setValidity('charE', true);
+					  } else {
+					    mCtrl.$setValidity('charE', false);
+					  }
+					  return value;
+					}
+					mCtrl.$parsers.push(myValidation); */
+
+				}
+			};
+		});
+
+		
+		app.directive('passwordDirective', function() {
+			return {
+				require : 'ngModel',
+				link : function(scope, element, attr, mCtrl) {
+					function checkPassword(password) {
+						if (password !== scope.user.password) {
+							mCtrl.$setValidity('match', false);
+						} else {
+							mCtrl.$setValidity('match', true);
+						}
+						return password;
+					}
+					mCtrl.$parsers.push(checkPassword);
+				}
+			};
+		});
+
+		app.controller('createAccountCtrl', function($scope, $http, $q) {
+			console.log("Hit!");
+
+			$scope.reset = function() {
+				// update for user info (might not store anything here idk)
+				$scope.user = {
+					username : '',
+					password : '',
+					userType : ''
+				};
+
+				$scope.passwordCheck = '';
+
+				if (undefined != $scope.createAccountForm) {
+					$scope.createAccountForm.$setPristine();
+				}
+			}
+
+			$scope.submit = function() {
+				$scope.createAccount();
+				// update submit
+				console.log("submit!")
+			}
+
+			$scope.getUsernames = function() {
+				$scope.usernames = [];
+				updateUserList();
+
+				for (let i = 0; i < $scope.userList.length; i++) {
+					$scope.usernames.push($scope.userList[i].username);
+				}
+			}
+
+			function updateUserList() {
+				$http.get("/api/v1/user").then(function(response) {
+					$scope.userList = response.data;
+				});
+			}
+
+			function updateStaffList() {
+				$http.get("/api/v1/user/staff").then(function(response) {
+					$scope.staffList = response.data;
+				});
+			}
+
+			function updateCustomerList() {
+				$http.get("/api/v1/user/customer").then(function(response) {
+					$scope.customerList = response.data;
+				});
+			}
+
+			function printAPI() {
+				$http.get("/api/v1/user/customer").then(function(response) {
+					console.log("/api/v1/user/customer");
+					console.log(response.data);
+				});
+
+				$http.get("/api/v1/user/staff").then(function(response) {
+					console.log("/api/v1/user/staff");
+					console.log(response.data);
+				});
+
+				$http.get("/api/v1/user").then(function(response) {
+					console.log("/api/v1/user");
+					console.log(response.data);
+				});
+			}
+
+			function getUsers() {
+				$http.get("/api/v1/user").then(function(response) {
+					$scope.users = response.data;
+				});
+			}
+
+			$scope.createAccount = function() {
+				$scope.success = false;
+				$scope.failure = false;
+
+				$scope.postPath = "/api/v1/user/".concat($scope.user.userType);
+
+				$http.post($scope.postPath, $scope.user).then(
+						function(success) {
+							$scope.success = true;
+							$scope.failure = false;
+							alert(success.data.message);
+
+							updateUserList();
+							updateStaffList();
+							updateCustomerList();
+							getUsers();
+
+							/* console.log("scope.users");
+							console.log($scope.users); */
+
+							$scope.reset();
+						}, function(rejection) {
+							$scope.success = false;
+							$scope.failure = true;
+							console.error("Error while creating account.");
+							alert(rejection.data.message); // Display error message to user
+						});
+			}
+
+			updateUserList();
+			updateStaffList();
+			updateCustomerList();
+			getUsers();
+
+			$scope.reset();
+		});
+		/*]]>*/
+	</script>
+
+	<div ng-app="myApp" class="generic-container ng-cloak"
+		ng-controller="createAccountCtrl as ctrl">
+		<div class="panel panel-default">
+		
+			<!-- <div class="panel-heading">
+				<span class="lead">Users</span>
+			</div>
+			
+			<div ng-repeat="user in userList track by $index">
+				{{ user.userType }} : {{ user.username }}<span id="current{{ user }}" ng-bind="user.userType"></span>
+				<br>
+		    </div>
+		    
+		    <div class="panel-heading">
+				<span class="lead">Staff</span>
+			</div>
+			
+			<div ng-repeat="staff in staffList track by $index">
+				{{ staff.userType }} : {{ staff.username }}<span id="current{{ staff }}" ng-bind="staff.userType"></span>
+				<br>
+		    </div>
+		    
+		    <div class="panel-heading">
+				<span class="lead">Customers</span>
+			</div>
+			
+			<div ng-repeat="customer in customerList track by $index">
+				{{ customer.userType }} : {{ customer.username }}<span id="current{{ staff }}" ng-bind="staff.userType"></span>
+				<br>
+		    </div> -->
+			
+			<div class="panel-heading">
+				<span class="lead">Create an Account</span>
+			</div>
+
+ 			<div class="formcontainer">
+				<form ng-submit="submit()" name="createAccountForm" class="form-horizontal">
+				
+					<div class="row px-3">
+						<div class="form-group col-md-12 my-0">
+							<input type="radio" id="staff" name="userType" value="staff" ng-model="user.userType" required>
+							<label class="me-2" for="staff">Staff</label>
+							<input type="radio" id="Customer" name="userType" value="customer" ng-model="user.userType" required>
+							<label class="me-2" for="customer">Customer</label><br>
+							
+							<p>Creating an account for <em>{{ user.userType }}</em></p>
+						</div>
+					</div>
+
+					<div class="row px-3">
+						<div class="form-group col-md-12">
+							<label class="control-label" for="username">Username</label>
+                            <!-- <p>Username must be 8-16 characters long and can only consist of letters and numbers.</p> -->
+							<input type="text" ng-model="user.username" name="username"
+                                title="Username must be 8-16 characters long and can only consist of letters and numbers."
+								class="username form-control input-sm" placeholder="" minlength="8" maxlength="16" pattern="[a-zA-Z0-9]*" username-directive required/>
+							<div class="help-block" for="username" ng-hide="createAccountForm.username.$dirty">
+                                Username must be 8-16 characters long and can only consist of letters and numbers.
+                            </div>
+                            <div class="has-error" ng-show="createAccountForm.username.$dirty">
+                            	<span ng-show="createAccountForm.username.$error.unique">Username already taken!<br></span>
+								<span ng-show="createAccountForm.username.$error.required">Username is required.<br></span>
+                                <span ng-show="createAccountForm.username.$invalid">
+                                    Username must be 8-16 characters long and can only consist of letters and numbers.</span>
+							</div>
+						</div>
+					</div>
+
+ 					<div class="row px-3">
+						<div class="form-group col-md-12">
+							<label class="mb-3 control-label" for="password">Password</label>
+							<input type="password" ng-model="user.password" name="password"
+								class="password form-control input-sm"
+                                title="Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed)."
+								placeholder="********" minlength="8" maxlength="32" pattern="[a-zA-Z0-9 ]*" required/>
+                            <div class="help-block" for="password" ng-hide="createAccountForm.password.$dirty">
+                                Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed).
+                            </div>
+							<div class="has-error" ng-show="createAccountForm.password.$dirty">
+								<span ng-show="createAccountForm.password.$error.required">Password is required.<br></span> 
+                                <span ng-show="createAccountForm.password.$invalid">
+                                    Password must be 8-32 characters long. It may only contain letters and numbers (spaces are allowed).</span>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row px-3">
+						<div class="form-group col-md-12">
+							<label class="mb-3 control-label" for="passwordCheck">Confirm Password</label>
+							<input type="password" ng-model="scope.passwordCheck" name="passwordCheck"
+								class="passwordCheck form-control input-sm"
+								placeholder="********" minlength="8" maxlength="32" pattern="[a-zA-Z0-9 ]*" password-directive required/>
+                            <div class="help-block" for="passwordCheck" ng-hide="createAccountForm.passwordCheck.$dirty">
+                                Re-enter your password.
+                            </div>
+							<div class="has-error" ng-show="createAccountForm.passwordCheck.$dirty">
+								<span ng-show="createAccountForm.passwordCheck.$error.required">Please re-enter your password.</span>
+								<span ng-show="createAccountForm.passwordCheck.$error.match">Passwords do not match.</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="row px-3">
+                        <div class="form-group my-0">
+							<input type="submit" value="Create Account"
+								class="btn btn-primary btn-sm"
+								ng-disabled="createAccountForm.$invalid" />
+                        </div>
+ 					</div>
+                    
+				</form>
+			</div>
+			<div ng-show="success">Account Created!</div>
+			<div ng-show="failure">Cannot create account.</div>
+		</div>
+
+		<a href="./login.html">Back</a>
+	</div>
+
+</body>
+</html>

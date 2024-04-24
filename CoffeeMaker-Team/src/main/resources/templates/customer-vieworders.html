@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>All Orders</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/bootstrap.css" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body>
+	<script> 
+    /*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app.controller('allCustomerOrdersCtrl', function($scope, $http) {
+			console.log('Hit!');
+			
+			function updateOrders() {
+				$http.get("/currentusername").then(function (response) {
+	  				$scope.username = response.data.message;
+	  				
+	  				$http.get("/api/v1/orderAllString/" + $scope.username).then(function (response) {
+		  				$scope.orders = response.data;
+		  			});
+	  			});
+				
+				console.log($scope.orders);
+			}
+			
+  			updateOrders();
+		});
+	/*]]>*/
+	</script>
+
+	<div layout:fragment="content" class="generic-container ng-cloak"
+		ng-app="myApp" ng-controller="allCustomerOrdersCtrl as ctrl">
+
+		<h1>Your Orders</h1>
+
+		<div>
+			<ul>
+				<li ng-repeat="order in orders track by $index">{{order}}</li>
+			</ul>
+			<br />
+			<div ng-if="0 >= orders.length">You have not placed any orders in the
+				Coffee Maker.</div>
+		
+		</div>
+		<a href="/customerindex">Home</a>
+	</div>
+
+
+
+</body>
+</html>
